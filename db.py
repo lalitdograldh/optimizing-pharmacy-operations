@@ -183,3 +183,63 @@ def update_product_quantity(product_id):
     conn.commit()
     cursor.close()
     conn.close()
+
+def get_all_batches():
+    """
+    Fetch all batches from the database
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    query = "SELECT * FROM batch"
+    cursor.execute(query)
+    batches = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return batches 
+
+def get_batch_by_id(batch_id):
+    """
+    Fetch a batch by its ID
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    query = "SELECT * FROM batch WHERE batch_id = %s"
+    cursor.execute(query, (batch_id,))
+    batch = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    return batch 
+
+def update_batch_qty(batch_id, new_qty):
+    """
+    Update the quantity of a batch
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    query = "UPDATE batch SET qty = %s, updated_at = CURDATE() WHERE batch_id = %s"
+    cursor.execute(query, (new_qty, batch_id))
+    conn.commit()
+    cursor.close()
+    conn.close()    
+
+
+def delete_batch(batch_id):
+    """
+    Delete a batch by its ID
+    """
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        query = "DELETE FROM batch WHERE batch_id = %s"
+        cursor.execute(query, (batch_id,))
+        conn.commit()
+        affected_rows = cursor.rowcount
+        cursor.close()
+        conn.close()
+
+        # Return True if a row was deleted, else False
+        return affected_rows > 0
+
+    except Exception as e:
+        print("Error deleting batch:", e)
+        return False       
