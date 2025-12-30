@@ -69,6 +69,7 @@ def get_all_product_batches():
     try:
         batches = get_all_batches()
 
+
         if not batches:
             return jsonify({"message": "No batches found"}), 404
         
@@ -90,7 +91,6 @@ def get_all_product_batches():
 def get_batch_details(batch_id): 
     try:
         batch = get_batch_by_id(batch_id)
-
         if not batch:
             return jsonify({"error": "Batch not found"}), 404
 

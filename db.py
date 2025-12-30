@@ -243,3 +243,148 @@ def delete_batch(batch_id):
     except Exception as e:
         print("Error deleting batch:", e)
         return False       
+
+
+# ----------------- SALE RELATED FUNCTIONS -----------------
+
+def get_batches_for_sale(product_id):
+    """
+    Fetch batches with qty > 0 for a given product_id, ordered by expiry_date ascending
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    query = """
+        SELECT * FROM batch
+        WHERE product_id = %s AND qty > 0
+        ORDER BY expiry_date ASC
+    """
+    cursor.execute(query, (product_id,))
+    batches = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return batches  
+
+def insert_sale(total_amount):
+    """
+    Insert a new sale record
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    query = """
+        INSERT INTO sales (total_amount,sale_date,created_at)
+        VALUES (%s, CURDATE(), CURDATE())
+    """
+    cursor.execute(query, (total_amount,))
+    conn.commit()
+    sale_id = cursor.lastrowid
+    cursor.close()
+    conn.close()
+    return sale_id  
+
+
+def insert_sale_item(sale_id, product_id, unit_price, quantity, subtotal):
+    """
+    Insert a new sale item record
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    query = """
+        INSERT INTO sales_items (sale_id, product_id, unit_price, quantity, subtotal,created_at)
+        VALUES (%s, %s, %s, %s, %s, CURDATE())
+    """
+    cursor.execute(query, (sale_id, product_id, unit_price, quantity, subtotal))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+def update_batch_quantity(batch_id, new_qty):
+    """
+    Update the quantity of a batch
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    query = "UPDATE batch SET qty = %s, updated_at = CURDATE() WHERE batch_id = %s"
+    cursor.execute(query, (new_qty, batch_id))
+    conn.commit()
+    cursor.close()
+    conn.close()    
+
+def update_product_quantity(product_id):
+    """
+    Recalculate total product quantity from batches
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    # Sum qty from all batches for this product
+    query = "SELECT SUM(qty) as total_qty FROM batch WHERE product_id = %s"
+    cursor.execute(query, (product_id,))
+    result = cursor.fetchone()
+    total_qty = result[0] if result[0] is not None else 0
+
+    # Update product table
+    query_update = "UPDATE product SET qty = %s, updated_at = CURDATE() WHERE id = %s"
+    cursor.execute(query_update, (total_qty, product_id))
+    conn.commit()
+    cursor.close()
+    conn.close( )
+
+def get_product_price(product_id):
+    """
+    Fetch the price of a product by its ID
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    query = "SELECT price FROM product WHERE id = %s"
+    cursor.execute(query, (product_id,))
+    product = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    return product[0] if product else None
+
+
+def get_all_sales():
+    """
+    Fetch all sales records
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    query = """
+        SELECT sale_id, sale_date, total_amount, created_at
+        FROM sales
+        ORDER BY sale_id ASC
+    """
+    cursor.execute(query)
+    sales = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+    return sales
+
+
+def get_sale_items_by_sale_id(sale_id):
+    """
+    Fetch all sale items for a given sale_id
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    query = """
+        SELECT
+            sale_item_id,
+            sale_id,
+            product_id,
+            quantity,
+            unit_price,
+            subtotal,
+            created_at
+        FROM sales_items
+        WHERE sale_id = %s
+        ORDER BY sale_item_id ASC
+    """
+    cursor.execute(query, (sale_id,))
+    items = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+    return items
